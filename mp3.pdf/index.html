@@ -13,20 +13,34 @@
         #audioPlayer {
             margin-top: 20px;
         }
+        .playlist-container {
+            margin-bottom: 20px;
+        }
+        .playlist-item {
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
 
 <h1>Lecteur MP3</h1>
 
-<label for="file-input">Importer un fichier MP3 :</label>
-<input type="file" id="file-input" accept="audio/mp3"><br><br>
+<label for="file-input">Importer des fichiers MP3 :</label>
+<input type="file" id="file-input" multiple accept="audio/mp3"><br><br>
 
 <label for="url-input">Ou entrez un lien MP3 :</label>
 <input type="text" id="url-input" placeholder="https://exemple.com/audio.mp3"><br><br>
 
-<button id="load-file">Charger le fichier</button>
+<button id="load-file">Charger les fichiers</button>
 <button id="load-url">Charger le lien</button><br><br>
+
+<div class="playlist-container">
+    <h2>Playlist</h2>
+    <ul id="playlist" class="playlist"></ul>
+</div>
 
 <audio id="audioPlayer" controls>
     Votre navigateur ne supporte pas l'élément audio.
@@ -36,25 +50,47 @@
     const audioPlayer = document.getElementById('audioPlayer');
     const fileInput = document.getElementById('file-input');
     const urlInput = document.getElementById('url-input');
-
+    const playlistContainer = document.getElementById('playlist');
+    
     document.getElementById('load-file').addEventListener('click', function() {
-        const file = fileInput.files[0];
-        if (file && file.type === 'audio/mp3') {
-            const fileURL = URL.createObjectURL(file);
-            audioPlayer.src = fileURL;
-            audioPlayer.play();
+        const files = fileInput.files;
+        if (files.length > 0) {
+            Array.from(files).forEach(file => {
+                if (file.type === 'audio/mp3') {
+                    const fileURL = URL.createObjectURL(file);
+                    const li = document.createElement('LI');
+                    li.textContent = file.name;
+                    li.dataset.url = fileURL;
+                    playlistContainer.appendChild(li);
+                }
+            });
         } else {
-            alert("Veuillez sélectionner un fichier MP3 valide.");
+            alert("Veuillez sélectionner des fichiers MP3.");
         }
     });
 
     document.getElementById('load-url').addEventListener('click', function() {
         const url = urlInput.value;
         if (url) {
-            audioPlayer.src = url;
-            audioPlayer.play();
+            const li = document.createElement('LI');
+            li.textContent = "Lien : " + url;
+            li.dataset.url = url;
+            playlistContainer.appendChild(li);
         } else {
             alert("Veuillez entrer un lien valide.");
+        }
+    });
+    
+    let currentIndex = 0;
+    
+    playlistContainer.addEventListener('click', function(event) {
+        if (event.target.tagName === 'LI') {
+            const targetUrl = event.target.dataset.url;
+            if (targetUrl) {
+                audioPlayer.src = targetUrl;
+                audioPlayer.play();
+                currentIndex = Array.from(playlistContainer.children).indexOf(event.target);
+            }
         }
     });
     
