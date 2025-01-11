@@ -71,8 +71,27 @@
             const targetUrl = event.target.dataset.url;
             if (targetUrl) {
                 audioPlayer.src = targetUrl;
+                const li = event.target;
+                playlistContainer.children[currentIndex+1].style.backgroundColor = '';
+                li.style.backgroundColor = '#007bff'; // Change la couleur du bouton cliqué
+                currentIndex = Array.from(playlistContainer.children).indexOf(li);
                 audioPlayer.play();
-                currentIndex = Array.from(playlistContainer.children).indexOf(event.target);
+            }
+        }
+    });
+    
+    // Supprimer l'élément cliqué en cliquant à nouveau dessus
+    playlistContainer.addEventListener('dblclick', function(event) {
+        if (event.target.tagName === 'LI') {
+            const targetUrl = event.target.dataset.url;
+            if (targetUrl) {
+                const li = event.target;
+                const index = Array.from(playlistContainer.children).indexOf(li);
+                if (index !== -1) {
+                    audioPlayer.src = '';
+                    playlistContainer.children[index].style.backgroundColor = '';
+                    playlistContainer.children[index].remove();
+                }
             }
         }
     });
