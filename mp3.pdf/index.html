@@ -21,12 +21,13 @@
             border: 1px solid #ddd;
             padding: 10px;
             margin-bottom: 10px;
+            cursor: pointer; /* Changer le curseur pour indiquer que l'élément est cliquable */
         }
     </style>
 </head>
 <body>
 
-<h1>Lecteur MP3 V2</h1>
+<h1>Lecteur MP3</h1>
 
 <label for="file-input">Importer des fichiers MP3 :</label>
 <input type="file" id="file-input" multiple accept="audio/mp3"><br><br>
@@ -56,7 +57,10 @@
                     const li = document.createElement('LI');
                     li.textContent = file.name;
                     li.dataset.url = fileURL;
+                    li.classList.add('playlist-item'); // Ajouter une classe pour le style
                     playlistContainer.appendChild(li);
+                } else {
+                    alert("Veuillez sélectionner des fichiers MP3 uniquement.");
                 }
             });
         } else {
@@ -64,38 +68,15 @@
         }
     });
     
-    let currentIndex = 0;
-    
     playlistContainer.addEventListener('click', function(event) {
         if (event.target.tagName === 'LI') {
             const targetUrl = event.target.dataset.url;
             if (targetUrl) {
                 audioPlayer.src = targetUrl;
-                const li = event.target;
-                playlistContainer.children[currentIndex+1].style.backgroundColor = '';
-                li.style.backgroundColor = '#007bff'; // Change la couleur du bouton cliqué
-                currentIndex = Array.from(playlistContainer.children).indexOf(li);
                 audioPlayer.play();
             }
         }
     });
-    
-    // Supprimer l'élément cliqué en cliquant à nouveau dessus
-    playlistContainer.addEventListener('dblclick', function(event) {
-        if (event.target.tagName === 'LI') {
-            const targetUrl = event.target.dataset.url;
-            if (targetUrl) {
-                const li = event.target;
-                const index = Array.from(playlistContainer.children).indexOf(li);
-                if (index !== -1) {
-                    audioPlayer.src = '';
-                    playlistContainer.children[index].style.backgroundColor = '';
-                    playlistContainer.children[index].remove();
-                }
-            }
-        }
-    });
-    
 </script>
 
 </body>
