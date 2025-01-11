@@ -1,10 +1,10 @@
 # SPC Bug
 This site is a multifunctional website with some feature
 # Feature
--Kour.io cloned
-Yeah it's not a lot
+Actually none but it will change soon
 # Upcoming 
 -MP3 Player
 -YT viewer
+-Some games
 # Contact
 email : SPCBUG9@gmail.com
