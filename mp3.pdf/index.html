@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player MP3</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        #audioPlayer {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Lecteur MP3</h1>
+
+<label for="file-input">Importer un fichier MP3 :</label>
+<input type="file" id="file-input" accept="audio/mp3"><br><br>
+
+<label for="url-input">Ou entrez un lien MP3 :</label>
+<input type="text" id="url-input" placeholder="https://exemple.com/audio.mp3"><br><br>
+
+<button id="load-file">Charger le fichier</button>
+<button id="load-url">Charger le lien</button><br><br>
+
+<audio id="audioPlayer" controls>
+    Votre navigateur ne supporte pas l'élément audio.
+</audio>
+
+<script>
+    const audioPlayer = document.getElementById('audioPlayer');
+    const fileInput = document.getElementById('file-input');
+    const urlInput = document.getElementById('url-input');
+
+    document.getElementById('load-file').addEventListener('click', function() {
+        const file = fileInput.files[0];
+        if (file && file.type === 'audio/mp3') {
+            const fileURL = URL.createObjectURL(file);
+            audioPlayer.src = fileURL;
+            audioPlayer.play();
+        } else {
+            alert("Veuillez sélectionner un fichier MP3 valide.");
+        }
+    });
+
+    document.getElementById('load-url').addEventListener('click', function() {
+        const url = urlInput.value;
+        if (url) {
+            audioPlayer.src = url;
+            audioPlayer.play();
+        } else {
+            alert("Veuillez entrer un lien valide.");
+        }
+    });
+    
+</script>
+
+</body>
+</html>
