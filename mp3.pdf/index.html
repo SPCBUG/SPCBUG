@@ -21,18 +21,20 @@
             border: 1px solid #ddd;
             padding: 10px;
             margin-bottom: 10px;
-            cursor: pointer; /* Changer le curseur pour indiquer que l'élément est cliquable */
+            cursor: pointer; /* Change le curseur pour indiquer que l'élément est cliquable */
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
 <h1>Lecteur MP3</h1>
 
-<label for="file-input">Importer des fichiers MP3 :</label>
-<input type="file" id="file-input" multiple accept="audio/mp3"><br><br>
+<label for="file-input">Importer des fichiers ZIP ou MP3 :</label>
+<input type="file" id="file-input" multiple accept=".zip,audio/mp3,audio/mpeg"><br><br>
 
-<button id="load-file">Charger les fichiers</button><br><br>
+<button id="load-file">Charger les fichiers</button>
+<button id="loop-button">Activer la boucle</button><br><br>
 
 <div class="playlist-container">
     <h2>Playlist</h2>
@@ -47,36 +49,147 @@
     const audioPlayer = document.getElementById('audioPlayer');
     const fileInput = document.getElementById('file-input');
     const playlistContainer = document.getElementById('playlist');
-    
-    document.getElementById('load-file').addEventListener('click', function() {
+    const loopButton = document.getElementById('loop-button');
+    let currentTrackIndex = 0; // Index de la piste actuelle
+    let isLooping = false; // État de la boucle
+
+    document.getElementById('load-file').addEventListener('click', async function() {
         const files = fileInput.files;
+
+        // Réinitialiser la playlist avant d'ajouter de nouveaux morceaux
+        playlistContainer.innerHTML = '';
+        currentTrackIndex = 0;
+
         if (files.length > 0) {
-            Array.from(files).forEach(file => {
-                if (file.type === 'audio/mp3') {
-                    const fileURL = URL.createObjectURL(file);
-                    const li = document.createElement('LI');
-                    li.textContent = file.name;
-                    li.dataset.url = fileURL;
-                    li.classList.add('playlist-item'); // Ajouter une classe pour le style
-                    playlistContainer.appendChild(li);
+            for (const file of files) {
+                if (file.type === 'audio/mp3' || file.type === 'audio/mpeg' || file.name.endsWith('.zip')) {
+                    // Si le fichier est un MP3 ou un ZIP, le traiter.
+                    if (file.type === 'audio/mp3' || file.type === 'audio/mpeg') {
+                        await addFileToPlaylist(file);
+                    } else if (file.name.endsWith('.zip')) {
+                        // Si le fichier est un ZIP, le traiter avec JSZip.
+                        await handleZipFile(file);
+                    }
                 } else {
-                    alert("Veuillez sélectionner des fichiers MP3 uniquement.");
+                    alert("Veuillez sélectionner des fichiers MP3 ou ZIP uniquement.");
+                    return;
                 }
-            });
+            }
         } else {
-            alert("Veuillez sélectionner des fichiers MP3.");
+            alert("Veuillez sélectionner des fichiers MP3 ou ZIP.");
         }
     });
-    
-    playlistContainer.addEventListener('click', function(event) {
-        if (event.target.tagName === 'LI') {
-            const targetUrl = event.target.dataset.url;
-            if (targetUrl) {
-                audioPlayer.src = targetUrl;
-                audioPlayer.play();
+
+    async function handleZipFile(file) {
+        const zip = new JSZip();
+        const zipContent = await zip.loadAsync(file);
+        const mp3Files = [];
+
+        for (const fileName in zipContent.files) {
+            const zipFile = zipContent.files[fileName];
+            if (!zipFile.dir && (fileName.endsWith('.mp3') || fileName.endsWith('.mpeg'))) {
+                // Extraire le fichier MP3
+                const mp3Blob = await zipFile.async('blob');
+                mp3Files.push(new File([mp3Blob], fileName, { type: 'audio/mpeg' }));
             }
         }
+
+        // Ajouter tous les fichiers MP3 extraits à la playlist
+        for (const mp3File of mp3Files) {
+            await addFileToPlaylist(mp3File);
+        }
+    }
+
+    async function addFileToPlaylist(file) {
+        const fileURL = URL.createObjectURL(file);
+        const li = document.createElement('LI');
+        li.textContent = file.name;
+        li.dataset.url = fileURL;
+        li.classList.add('playlist-item'); // Ajouter une classe pour le style
+        playlistContainer.appendChild(li);
+    }
+
+    // Fonction pour jouer la piste actuelle
+    function playTrack(index) {
+        const tracks = Array.from(playlistContainer.children);
+        if (index < tracks.length) {
+            const targetUrl = tracks[index].dataset.url;
+            audioPlayer.src = targetUrl;
+            audioPlayer.play();
+            updateMediaSession(); // Met à jour l'API Media Session
+        }
+    }
+
+    // Événement pour passer à la piste suivante lorsque la piste actuelle se termine
+    audioPlayer.addEventListener('ended', function() {
+        if (isLooping) {
+            audioPlayer.currentTime = 0; // Reprendre depuis le début
+            audioPlayer.play();
+        } else {
+            currentTrackIndex++;
+            if (currentTrackIndex >= playlistContainer.children.length) {
+                currentTrackIndex = 0; // Revenir à la première piste
+            }
+            playTrack(currentTrackIndex);
+        }
     });
+
+    // Événement sur le bouton de boucle
+    loopButton.addEventListener('click', function() {
+        isLooping = !isLooping; // Alterner l'état de la boucle
+        loopButton.textContent = isLooping ? "Désactiver la boucle" : "Activer la boucle";
+    });
+
+    // Événements de clic sur la playlist
+    playlistContainer.addEventListener('click', function(event) {
+        if (event.target.tagName === 'LI') {
+            currentTrackIndex = Array.from(playlistContainer.children).indexOf(event.target);
+            playTrack(currentTrackIndex);
+        }
+    });
+
+    // Gestion des événements de la Media Session
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', function() {
+            audioPlayer.play();
+        });
+
+        navigator.mediaSession.setActionHandler('pause', function() {
+            audioPlayer.pause();
+        });
+
+        navigator.mediaSession.setActionHandler('previoustrack', function() {
+            currentTrackIndex--;
+            if (currentTrackIndex < 0) {
+                currentTrackIndex = playlistContainer.children.length - 1; // Revenez à la dernière piste
+            }
+            playTrack(currentTrackIndex);
+        });
+
+        navigator.mediaSession.setActionHandler('nexttrack', function() {
+            currentTrackIndex++;
+            if (currentTrackIndex >= playlistContainer.children.length) {
+                currentTrackIndex = 0; // Revenir à la première piste
+            }
+            playTrack(currentTrackIndex);
+        });
+    }
+
+    // Met à jour les métadonnées de la session multimédia
+    function updateMediaSession() {
+        if ('mediaSession' in navigator) {
+            const track = {
+                title: playlistContainer.children[currentTrackIndex].textContent,
+                artist: 'Artiste ici', // Remplacez ceci par un nom d'artiste si disponible
+                album: 'Album ici', // Remplacez ceci par un nom d'album si disponible
+                artwork: [
+                    { src: 'image-album-url-ici.jpg', sizes: '512x512', type: 'image/jpeg' } // Remplacez ceci par une vraie image
+                ]
+            };
+
+            navigator.mediaSession.metadata = new MediaMetadata(track);
+        }
+    }
 </script>
 
 </body>
